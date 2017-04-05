@@ -1,0 +1,215 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+    <title>KML Viewer</title>
+</head>
+<body>
+<div class="container">
+    <div class="col-md-2">
+        <div id="tree"></div>
+    </div>
+    <div class="col-md-10" id="drop_zone">
+        <h2>Drop .kml file here.</h2>
+        <h4>File will be processed locally in your browser</h4>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+<link rel="stylesheet" href="css/bootstrap-treeview.min.css">
+<script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=AIzaSyBtp_5nweEV0--j5l1dBo3d5_MazE4qoTs"></script>
+<script type="text/javascript" src="https://code.jquery.com/jquery-2.2.2.min.js"></script>
+<script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="js/bootstrap-treeview.js" ></script>
+<script type="text/javascript" src="js/geoxml3.js" ></script>
+
+<script type="text/javascript">
+    var allMarkers = [];
+    var map;
+
+    // Check for the various File API support.
+    if (window.File && window.FileReader && window.FileList && window.Blob) {
+        function handleFileSelect(evt) {
+            evt.stopPropagation();
+            evt.preventDefault();
+
+            var files = evt.dataTransfer.files; // FileList object.
+
+            // files is a FileList of File objects. List some properties.
+            if (files.length > 1) {
+                alert("Drop only one file a time, please!");
+            } else if (files.length == 1) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    if (e.target.readyState == FileReader.DONE) {
+                        var contents = e.target.result;
+
+                        // initialize google map
+                        map = new google.maps.Map(document.getElementById("drop_zone"), {
+                            mapTypeId: google.maps.MapTypeId.ROADMAP,
+                            overviewMapControl: false,
+                            rotateControl: false,
+                            streetViewControl: false,
+                            tilt: 0,
+                            styles: [
+                                {
+                                    featureType: "poi",
+                                    elementType: "labels",
+                                    stylers: [
+                                        { visibility: "off" }
+                                    ]
+                                },
+                                {
+                                    featureType: "transit",
+                                    elementType: "labels",
+                                    stylers: [
+                                        { visibility: "off" }
+                                    ]
+                                }
+                            ]
+                        });
+
+                        function addMarkerWithSelection(placemark, doc) {
+                            var marker = parser.createMarker(placemark, doc);
+                            marker.folder = placemark.folder;
+                            allMarkers.push(marker);
+                            return marker;
+                        }
+
+                        function addPolylineWithSelection(placemark, doc) {
+                            var marker = parser.createPolyline(placemark, doc);
+                            marker.folder = placemark.folder;
+                            allMarkers.push(marker);
+                            return marker;
+                        }
+
+                        var parser = new geoXML3.parser({
+                            map: map,
+                            processStyles: true,
+                            createMarker: addMarkerWithSelection,
+                            createPolyline: addPolylineWithSelection,
+                            suppressInfoWindows: true
+                            });
+                        parser.parseKmlString(contents);
+
+                        $('#tree').treeview({
+                            data: getTree(),
+                            showIcon: false,
+                            showCheckbox: true,
+                            onNodeChecked: function(event, data) {
+                                if (data.element) {
+                                    data.element.setMap(map);
+                                }
+                            },
+                            onNodeUnchecked: function(event, data) {
+                                if (data.element) {
+                                    data.element.setMap(null);
+                                }
+                            },
+                        });
+                    }
+                }
+                reader.onerror = function(e) {
+                    alert("Error occured #" + reader.error.code);
+                }
+
+                // Read in the image file as a data URL.
+                allMarkers = [];
+                reader.readAsText(files[0]);
+            }
+        }
+
+        function handleDragOver(evt) {
+            evt.stopPropagation();
+            evt.preventDefault();
+            evt.dataTransfer.dropEffect = 'copy';
+        }
+
+        // Setup the dnd listeners.
+        var dropZone = document.getElementById('drop_zone');
+        dropZone.addEventListener('dragover', handleDragOver, false);
+        dropZone.addEventListener('dragleave', handleDragOver, false);
+        dropZone.addEventListener('drop', handleFileSelect, false);
+    } else {
+        alert("Browser missing necessary APIs");
+    }
+
+    function getTree() {
+        var tree = [];
+        for (var elementNum in allMarkers) {
+            var element = allMarkers[elementNum];
+            var parentNode = undefined;
+            for (var folderNum = element.folder.length - 1; folderNum >= 0; --folderNum) {
+                var foundNode = undefined;
+                var searchNode = undefined;
+
+                // If we are on the first element, search the tree
+                // Otherwise, search the foundNode
+                if (folderNum === element.folder.length - 1) {
+                    searchNode = tree;
+                } else {
+                    if (parentNode.nodes === undefined) {
+                        parentNode.nodes = [];
+                    }
+                    searchNode = parentNode.nodes;
+                }
+
+                for (var treeElementNum in searchNode) {
+                    if (searchNode[treeElementNum].text === element.folder[folderNum]) {
+                        foundNode = searchNode[treeElementNum];
+                        break;
+                    }
+                }
+
+                if (foundNode === undefined) {
+                    foundNode = {
+                        text: element.folder[folderNum],
+                        state: {
+                            checked: true
+                        }
+                    };
+                    searchNode.push(foundNode);
+                }
+
+                parentNode = foundNode;
+            }
+            if (parentNode) {
+                if (parentNode.nodes === undefined) {
+                    parentNode.nodes = [];
+                }
+                parentNode.nodes.push({
+                    text: element.title,
+                    element: element,
+                    state: {
+                        checked: true
+                    }
+                });
+            }
+        }
+        return tree;
+    }
+</script>
+<noscript>Please enable JavaScript to view this site.</noscript>
+
+<style>
+    html {
+        height: 100%;
+    }
+    body {
+        height: 100%;
+    }
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+    #drop_zone {
+        border: 6px dashed #c0beb8;
+        border-radius: 6px;
+        text-align: center;
+        font-size: 22pt;
+        background-color: #e5e3df;
+        height: 100%
+    }
+</style>
+
+</body>
+</html>
