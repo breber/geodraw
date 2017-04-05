@@ -145,39 +145,49 @@
         for (var elementNum in allMarkers) {
             var element = allMarkers[elementNum];
             var parentNode = undefined;
-            for (var folderNum = element.folder.length - 1; folderNum >= 0; --folderNum) {
-                var foundNode = undefined;
-                var searchNode = undefined;
-
-                // If we are on the first element, search the tree
-                // Otherwise, search the foundNode
-                if (folderNum === element.folder.length - 1) {
-                    searchNode = tree;
-                } else {
-                    if (parentNode.nodes === undefined) {
-                        parentNode.nodes = [];
+            if (element.folder === undefined || element.folder.length == 0) {
+                var foundNode = {
+                    text: element.title,
+                    state: {
+                        checked: true
                     }
-                    searchNode = parentNode.nodes;
-                }
+                };
+                tree.push(foundNode);
+            } else {
+                for (var folderNum = element.folder.length - 1; folderNum >= 0; --folderNum) {
+                    var foundNode = undefined;
+                    var searchNode = undefined;
 
-                for (var treeElementNum in searchNode) {
-                    if (searchNode[treeElementNum].text === element.folder[folderNum]) {
-                        foundNode = searchNode[treeElementNum];
-                        break;
-                    }
-                }
-
-                if (foundNode === undefined) {
-                    foundNode = {
-                        text: element.folder[folderNum],
-                        state: {
-                            checked: true
+                    // If we are on the first element, search the tree
+                    // Otherwise, search the foundNode
+                    if (folderNum === element.folder.length - 1) {
+                        searchNode = tree;
+                    } else {
+                        if (parentNode.nodes === undefined) {
+                            parentNode.nodes = [];
                         }
-                    };
-                    searchNode.push(foundNode);
-                }
+                        searchNode = parentNode.nodes;
+                    }
 
-                parentNode = foundNode;
+                    for (var treeElementNum in searchNode) {
+                        if (searchNode[treeElementNum].text === element.folder[folderNum]) {
+                            foundNode = searchNode[treeElementNum];
+                            break;
+                        }
+                    }
+
+                    if (foundNode === undefined) {
+                        foundNode = {
+                            text: element.folder[folderNum],
+                            state: {
+                                checked: true
+                            }
+                        };
+                        searchNode.push(foundNode);
+                    }
+
+                    parentNode = foundNode;
+                }
             }
             if (parentNode) {
                 if (parentNode.nodes === undefined) {
