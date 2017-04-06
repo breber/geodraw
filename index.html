@@ -21,6 +21,36 @@
     </div>
 </div>
 
+<!-- Modal -->
+<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="myModalLabel">About</h4>
+      </div>
+      <div class="modal-body">
+        This website allows for displaying and interacting with KML files (and other geo-format files coming soon)!
+        <br><br>
+        All the websites I have found for drawing geographical information are deficient is some manner:
+
+        <ul>
+            <li>Poor user interfaces</li>
+            <li>Do not support folders</li>
+            <li>Do not support toggling visibility of items</li>
+        </ul>
+
+        <br>
+        To get started, drag a KML file into the window!
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" data-dismiss="modal" id="showSample">Show Sample</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
 <link rel="stylesheet" href="css/bootstrap-treeview.min.css">
 <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=AIzaSyBtp_5nweEV0--j5l1dBo3d5_MazE4qoTs"></script>
@@ -30,11 +60,85 @@
 <script type="text/javascript" src="js/geoxml3.js" ></script>
 
 <script type="text/javascript">
+    $('#showSample').on('click', function () {
+        $.get('samples/farmers_markets.kml', function(data) {
+            loadFile(data);
+        }, dataType='text');
+    });
+
+    $('#myModal').modal();
+
+
     var allMarkers = [];
     var map;
 
     // Check for the various File API support.
     if (window.File && window.FileReader && window.FileList && window.Blob) {
+        function loadFile(contents) {
+            // initialize google map
+            map = new google.maps.Map(document.getElementById("drop_zone"), {
+                mapTypeId: google.maps.MapTypeId.ROADMAP,
+                overviewMapControl: false,
+                rotateControl: false,
+                streetViewControl: false,
+                tilt: 0,
+                styles: [
+                    {
+                        featureType: "poi",
+                        elementType: "labels",
+                        stylers: [
+                            { visibility: "off" }
+                        ]
+                    },
+                    {
+                        featureType: "transit",
+                        elementType: "labels",
+                        stylers: [
+                            { visibility: "off" }
+                        ]
+                    }
+                ]
+            });
+
+            function addMarkerWithSelection(placemark, doc) {
+                var marker = parser.createMarker(placemark, doc);
+                marker.folder = placemark.folder;
+                allMarkers.push(marker);
+                return marker;
+            }
+
+            function addPolylineWithSelection(placemark, doc) {
+                var marker = parser.createPolyline(placemark, doc);
+                marker.folder = placemark.folder;
+                allMarkers.push(marker);
+                return marker;
+            }
+
+            var parser = new geoXML3.parser({
+                map: map,
+                processStyles: true,
+                createMarker: addMarkerWithSelection,
+                createPolyline: addPolylineWithSelection,
+                suppressInfoWindows: true
+                });
+            parser.parseKmlString(contents);
+
+            $('#tree').treeview({
+                data: getTree(),
+                showIcon: false,
+                showCheckbox: true,
+                onNodeChecked: function(event, data) {
+                    if (data.element) {
+                        data.element.setMap(map);
+                    }
+                },
+                onNodeUnchecked: function(event, data) {
+                    if (data.element) {
+                        data.element.setMap(null);
+                    }
+                },
+            });
+        }
         function handleFileSelect(evt) {
             evt.stopPropagation();
             evt.preventDefault();
@@ -48,71 +152,7 @@
                 var reader = new FileReader();
                 reader.onload = function(e) {
                     if (e.target.readyState == FileReader.DONE) {
-                        var contents = e.target.result;
-
-                        // initialize google map
-                        map = new google.maps.Map(document.getElementById("drop_zone"), {
-                            mapTypeId: google.maps.MapTypeId.ROADMAP,
-                            overviewMapControl: false,
-                            rotateControl: false,
-                            streetViewControl: false,
-                            tilt: 0,
-                            styles: [
-                                {
-                                    featureType: "poi",
-                                    elementType: "labels",
-                                    stylers: [
-                                        { visibility: "off" }
-                                    ]
-                                },
-                                {
-                                    featureType: "transit",
-                                    elementType: "labels",
-                                    stylers: [
-                                        { visibility: "off" }
-                                    ]
-                                }
-                            ]
-                        });
-
-                        function addMarkerWithSelection(placemark, doc) {
-                            var marker = parser.createMarker(placemark, doc);
-                            marker.folder = placemark.folder;
-                            allMarkers.push(marker);
-                            return marker;
-                        }
-
-                        function addPolylineWithSelection(placemark, doc) {
-                            var marker = parser.createPolyline(placemark, doc);
-                            marker.folder = placemark.folder;
-                            allMarkers.push(marker);
-                            return marker;
-                        }
-
-                        var parser = new geoXML3.parser({
-                            map: map,
-                            processStyles: true,
-                            createMarker: addMarkerWithSelection,
-                            createPolyline: addPolylineWithSelection,
-                            suppressInfoWindows: true
-                            });
-                        parser.parseKmlString(contents);
-
-                        $('#tree').treeview({
-                            data: getTree(),
-                            showIcon: false,
-                            showCheckbox: true,
-                            onNodeChecked: function(event, data) {
-                                if (data.element) {
-                                    data.element.setMap(map);
-                                }
-                            },
-                            onNodeUnchecked: function(event, data) {
-                                if (data.element) {
-                                    data.element.setMap(null);
-                                }
-                            },
-                        });
+                        loadFile(e.target.result);
                     }
                 }
                 reader.onerror = function(e) {
