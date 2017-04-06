@@ -180,6 +180,14 @@
         alert("Browser missing necessary APIs");
     }
 
+    function getTitle(element) {
+        if (element.title === undefined || element.title === "") {
+            return element.position.lat() + ", " + element.position.lng();
+        }
+
+        return element.title;
+    }
+
     function getTree() {
         var tree = [];
         for (var elementNum in allMarkers) {
@@ -187,7 +195,7 @@
             var parentNode = undefined;
             if (element.folder === undefined || element.folder.length == 0) {
                 var foundNode = {
-                    text: element.title,
+                    text: getTitle(element),
                     element: element,
                     state: {
                         checked: true
@@ -235,7 +243,7 @@
                     parentNode.nodes = [];
                 }
                 parentNode.nodes.push({
-                    text: element.title,
+                    text: getTitle(element),
                     element: element,
                     state: {
                         checked: true
