@@ -129,15 +129,18 @@
                 showCheckbox: true,
                 onNodeChecked: function(event, data) {
                     if (data.element) {
+                        data.element.visible = true;
                         data.element.setMap(map);
                     }
                 },
                 onNodeUnchecked: function(event, data) {
                     if (data.element) {
+                        data.element.visible = false;
                         data.element.setMap(null);
                     }
                 },
             });
+            $('#tree').treeview('collapseAll', { silent: true });
         }
         function handleFileSelect(evt) {
             evt.stopPropagation();
@@ -181,7 +184,7 @@
     }
 
     function getTitle(element) {
-        if (element.title === undefined || element.title === "") {
+        if (element.title === undefined || element.title === null || element.title === "") {
             return element.position.lat() + ", " + element.position.lng();
         }
 
@@ -190,7 +193,7 @@
 
     function getTree() {
         var tree = [];
-        for (var elementNum in allMarkers) {
+        for (var elementNum = 0; elementNum < allMarkers.length; ++elementNum) {
             var element = allMarkers[elementNum];
             var parentNode = undefined;
             if (element.folder === undefined || element.folder.length == 0) {
@@ -198,7 +201,7 @@
                     text: getTitle(element),
                     element: element,
                     state: {
-                        checked: true
+                        checked: element.visible
                     }
                 };
                 tree.push(foundNode);
@@ -229,10 +232,17 @@
                         foundNode = {
                             text: element.folder[folderNum],
                             state: {
-                                checked: true
+                                checked: element.visible
                             }
                         };
                         searchNode.push(foundNode);
+                    } else {
+                        var checked = true;
+                        for (var tmpNode in foundNode.nodes) {
+                            checked = checked && foundNode.nodes[tmpNode].state.checked;
+                        }
+
+                        foundNode.state.checked = checked;
                     }
 
                     parentNode = foundNode;
@@ -246,7 +256,7 @@
                     text: getTitle(element),
                     element: element,
                     state: {
-                        checked: true
+                        checked: element.visible
                     }
                 });
             }

@@ -415,6 +415,7 @@ var coordListA = [];
           name:  geoXML3.nodeValue(node.getElementsByTagName('name')[0]),
           description: geoXML3.nodeValue(node.getElementsByTagName('description')[0]),
           styleUrl: geoXML3.nodeValue(node.getElementsByTagName('styleUrl')[0]),
+          visibility: getBooleanValue(node.getElementsByTagName('visibility')[0], true),
           id: node.getAttribute('id')
         };
         placemark.style = doc.styles[placemark.styleUrl] || clone(defaultStyle);
@@ -850,7 +851,8 @@ var coordListA = [];
       title:    placemark.name,
       zIndex:   Math.round(placemark.Point.coordinates[0].lat * -100000)<<5,
       icon:     placemark.style.icon,
-      shadow:   placemark.style.shadow
+      shadow:   placemark.style.shadow,
+      visible:  placemark.visibility
     });
 
     // Create the marker on the map
@@ -930,7 +932,8 @@ var createPolyline = function(placemark, doc) {
     strokeColor: kmlStrokeColor.color,
     strokeWeight: placemark.style.width,
     strokeOpacity: kmlStrokeColor.opacity,
-    title:    placemark.name
+    title:    placemark.name,
+    visible:  placemark.visibility
   });
   if (paths.length > 1) {
     polyOptions.paths = paths;
